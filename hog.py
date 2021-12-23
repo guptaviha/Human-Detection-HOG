@@ -33,7 +33,6 @@ def convert_to_grayscale(curr_training_image):
 
     return bw_img
 
-
 ### Compute Gradients
 def compute_gradients(bw_img):
 
@@ -59,7 +58,7 @@ def compute_gradients(bw_img):
     gradient_x_image = np.zeros((height,width))
     gradient_y_image = np.zeros((height,width))
     gradient_angle = np.zeros((height,width))
-    gradient_angle.fill(1001) # we consider 1001 as undefined
+    #gradient_angle.fill(1001) # we consider 1001 as undefined
     gradient_magnitude = np.zeros((height,width))
 
     # loop through smoothened image and find gradient magnitudes in x and y
@@ -91,23 +90,29 @@ def compute_gradients(bw_img):
     # calculate gradient magnitude and angle
     for i in range(0+buffer,height-buffer,1):
         for j in range(0+buffer,width-buffer,1):
-            # set undefinited if Gx = 0 aand Gy <> 0
+            # set undefinited to zero....// Gx = 0 aand Gy <> 0
             if gradient_x_image[i][j] == 0:
-                gradient_angle[i][j] = 1001
+                gradient_angle[i][j] = 0
             # if both Gx and Gy are 0, assign 0 to gradient mag and angle
-                if gradient_y_image[i][j] == 0:
-                    gradient_angle[i][j] = 0
-                    gradient_magnitude[i][j] = 0        
+                #if gradient_y_image[i][j] == 0:
+                    #gradient_angle[i][j] = 0
+                    #gradient_magnitude[i][j] = 0
             else :
                 gradient_angle[i][j] = \
-                gradient_y_image[i][j]/gradient_x_image[i][j]
+                math.degrees(math.atan(gradient_y_image[i][j]/gradient_x_image[i][j]))
 
                 gradient_magnitude[i][j] = \
                 math.sqrt(gradient_x_image[i][j] * gradient_x_image[i][j] \
                     + gradient_y_image[i][j] * gradient_y_image[i][j])
+            
+            
             # for negative angle, add 360
-            if gradient_angle[i][j] < 0 :
+            if gradient_angle[i][j] <= 0 :
                 gradient_angle[i][j] = gradient_angle[i][j] + 360
+                
+            # bring gradient angle value under 360
+            if gradient_angle[i][j] > 360:
+                gradient_angle[i][j] = gradient_angle[i][j]%360
 
             # if angle between 180 and 360, sub by 180. If angle = 360, set to zero
             if 180 <= gradient_angle[i][j] < 360:
@@ -125,55 +130,63 @@ def compute_gradients(bw_img):
 
 ### Compute HOG
 
-# def HOG(gradient_magnitude, gradient_angle):
-#     # this is a dummy value
-#     HOG = np.random.rand(1,7524)
-#     return HOG
-
 def HOG(gradient_magnitude, gradient_angle):
-
-    print("gradient_magnitude", gradient_magnitude.shape)
-    print("gradient_angle", gradient_angle.shape)
     
+    #Creating a feature vector which will be a 3d array
     feature_vector_3d = np.zeros((20,12,9))
     kk = np.zeros(9)
+    
+    # the final hog vector will have 19*11(block)*36(feature vector)=7524 values
     final_hog_vector = np.zeros(7524)
     block = np.zeros(36)
     
+    # Calculating the feature vector values for (160/8=)20 * (96/8)12 = 240 cells
     for i in range(0,19,1):
         for j in range(0,11,1):
             for ii in range(0+8*i,7+8*i,1):
                 for jj in range(0+8*j,7+8*j,1):
-                    # kk=0
                     ga = gradient_angle[ii][jj]
                     gm = gradient_magnitude[ii][jj]
                     
-                    if 0<=ga<20:
-                        kk[0] += gm
-                    if 20<=ga<40:
-                        kk[1] += gm
-                    if 40<=ga<60:
-                        kk[2] += gm
-                    if 60<=ga<80:
-                        kk[3] += gm
-                    if 80<=ga<100:
-                        kk[4] += gm
-                    if 100<=ga<120:
-                        kk[5] += gm
-                    if 120<=ga<140:
-                        kk[6] += gm
-                    if 140<=ga<160:
-                        kk[7] += gm
-                    if 160<=ga<180:
-                        kk[8] += gm
+                    # Assigning appropriate magnitude to correct bins
+                    if 10<=ga<30:
+                        kk[0] += 0.05*(ga-10)*gm
+                        kk[1] += 0.05*(30-ga)*gm
+                    if 30<=ga<50:
+                        kk[1] += 0.05*(ga-30)*gm
+                        kk[2] += 0.05*(50-ga)*gm
+                    if 50<=ga<70:
+                        kk[2] += 0.05*(ga-50)*gm
+                        kk[3] += 0.05*(70-ga)*gm
+                    if 70<=ga<90:
+                        kk[3] += 0.05*(ga-70)*gm
+                        kk[4] += 0.05*(90-ga)*gm
+                    if 90<=ga<110:
+                        kk[4] += 0.05*(ga-90)*gm
+                        kk[5] += 0.05*(110-ga)*gm
+                    if 110<=ga<130:
+                        kk[5] += 0.05*(ga-110)*gm
+                        kk[6] += 0.05*(130-ga)*gm
+                    if 130<=ga<150:
+                        kk[6] += 0.05*(ga-130)*gm
+                        kk[7] += 0.05*(150-ga)*gm
+                    if 150<=ga<170:
+                        kk[7] += 0.05*(ga-150)*gm
+                        kk[8] += 0.05*(170-ga)*gm
+                    if 170<=ga<180 or 0<=ga<10:
+                        kk[8] += gm/2
+                        kk[0] += gm/2
 
             for k in range(0,8,1):
                 feature_vector_3d[i][j][k] = kk[k]
+                kk[k]=0
 
     count = 0
+
+    # Calculating the final hog feature vector. 
+    # There are 19*11 blocks due to one cell overlap
     for i in range(0,18,1):
         for j in range(0,10,1):
-            # block=0
             square_sum = 0
             for k in range(0,8,1):
                 block[k] = feature_vector_3d[i][j][k]
@@ -190,9 +203,11 @@ def HOG(gradient_magnitude, gradient_angle):
             
             count += 36
             block_norm = math.sqrt(square_sum)
-            # if block_norm == 0:
-            #     print ("block_norm is zero", block_norm)
-            block = block/block_norm  
+            
+            if block_norm != 0:
+                # Performing L2 normalization
+                block = block/block_norm  
+                
             c = count-36
             for k in range(c,c+35,1):
                 final_hog_vector[k] = block[k%36]
@@ -200,32 +215,39 @@ def HOG(gradient_magnitude, gradient_angle):
     return final_hog_vector
 
 
-### Calculate distances
 
-def calculate_distances(training_HOG, test_HOG):
+### Calculate similarity
+
+def calculate_similarity(training_HOG, test_HOG):
     height, _ = training_HOG.shape
+    similarity = np.zeros((1,height))
 
-    distances = np.zeros((1,height))
-
+    # iterating through each training image index i
     for i in range(height):
-
-        distances[0,i] = (np.sum(np.minimum(training_HOG[i,:],test_HOG)))\
+        similarity[0,i] = (np.sum(np.minimum(training_HOG[i,:],test_HOG)))\
             /(np.sum(training_HOG[i,:]))
-    return distances
+
+    return similarity
 
 
 ### Determine 3NN
-def threeNN(distances, n_neg_train):
+def threeNN(similarity, n_neg_train):
     neg = 0
     pos = 0
-    #pick thress smallest 
-    indices = np.argsort(distances)[0][:3]
+    NN_count = 1
+
+    # pick three largest 
+    indices = np.argsort(similarity)[0][-3:]
 
     for i in indices:
         if i < n_neg_train:
             neg += 1
+            print("\nNN #%d: %s, %f, Not-human" % (NN_count, neg_train_files[i], similarity[0][i]))
         else:
             pos +=1
+            print("\nNN #%d: %s, %f, Human" % (NN_count, pos_train_files[i%n_neg_train], similarity[0][i]))
+        NN_count += 1
+
     if neg > pos:
         classification = 'Not human'
     else:
@@ -234,9 +256,18 @@ def threeNN(distances, n_neg_train):
     return classification
 
 
-
 # main 
-# ensure proper arguments given i.e. python3 hog.py './Test images (Neg)/00000003a_cut.bmp'
+# ensure proper arguments given i.e. 
+# python3 hog.py './Test images (Neg)/00000003a_cut.bmp'
+# python3 hog.py './Test images (Neg)/00000090a_cut.bmp'
+# python3 hog.py './Test images (Neg)/00000118a_cut.bmp'
+# python3 hog.py './Test images (Neg)/no_person__no_bike_258_Cut.bmp'
+# python3 hog.py './Test images (Neg)/no_person__no_bike_264_cut.bmp'
+# python3 hog.py './Test images (Pos)/crop001034b.bmp'
+# python3 hog.py './Test images (Pos)/crop001070a.bmp'
+# python3 hog.py './Test images (Pos)/crop001278a.bmp'
+# python3 hog.py './Test images (Pos)/crop001500b.bmp'
+# python3 hog.py './Test images (Pos)/person_and_bike_151a.bmp'
 if (len(sys.argv)) < 2:
     print("Command failure. Please pass image path+name as parameter in single quotesand try again.\
         \nExample: $ python3 hog.py './Test images (Neg)/00000003a_cut.bmp'")
@@ -319,11 +350,11 @@ test_HOG = HOG(gradient_magnitude, gradient_angle)
 print ("Grayscale, Gradients and HOG for test image complete")
 
 # Calculate distance
-distances = calculate_distances(training_HOG, test_HOG)
+similarity = calculate_similarity(training_HOG, test_HOG)
 
 print ("Distance calculation complete")
 
 # Classify with 3NN
-classification = threeNN(distances, n_neg_train)
+classification = threeNN(similarity, n_neg_train)
 
-print("The test image is classified as: ", classification)
+print("\nThe test image is classified as: ", classification)
