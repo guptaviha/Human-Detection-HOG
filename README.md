@@ -4,7 +4,7 @@ An academic project for Computer Vision (CS-GY-6643) at NYU Tandon with Prof Edw
 
 Objective: To classify a test image as Human or Non-Human by using HOG feature extraction and KNN clustering for classification against a small training set of 20 labeled images. 
 
-For more details: [Report](https://github.com/guptaviha/Human-Detection-HOG/blob/master/Report.pdf)
+For more details: [Prompt](https://github.com/guptaviha/Human-Detection-HOG/blob/master/Project_Prompt.pdf) & [Report](https://github.com/guptaviha/Human-Detection-HOG/blob/master/Report.pdf)
 
 ## Execution Instructions
 
