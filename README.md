@@ -15,3 +15,9 @@ For more details: [Prompt](https://github.com/guptaviha/Human-Detection-HOG/blob
 ```
 python3 hog.py './Test images (Neg)/00000003a_cut.bmp'
 ```
+
+## Contributors
+
+Suyash Soniminde - sys8910@nyu.edu
+
+Viha Gupta - vg2237@nyu.edu
